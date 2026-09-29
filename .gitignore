@@ -1,0 +1,62 @@
+# Python & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Node & Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Database & Runtime Generated Data
+*.db
+*.sqlite
+*.sqlite3
+readings.db
+
+# Logs & Temporary Files
+*.log
+logs/
+*.tmp
+*.temp
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.production
+.env.development
+
+# IDE & Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Arduino & Embedded build outputs
+*.elf
+*.bin
+*.hex
