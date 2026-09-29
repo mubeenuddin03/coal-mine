@@ -4,7 +4,23 @@ This document describes the end-to-end architecture, communication topology, dat
 
 ---
 
-## 1. High-Level Architecture Diagram
+## 1. Physical Prototype vs. Large-Scale System Architecture
+
+To ensure technical clarity across different project phases, the system distinction is defined below:
+
+| Feature / Attribute | Current Physical Prototype (This Implementation) | Large-Scale Field Architecture (MineGuard Design) |
+| :--- | :--- | :--- |
+| **Microcontrollers** | ESP32 (Nodes 1 & 2) + ESP32-S3 (Gateway) | ESP32-S3 Mini across all array nodes |
+| **Communication** | **ESP-NOW (2.4 GHz)** + Wi-Fi to Backend | **LoRa 865 MHz** mesh network (LLCC68 SPI) |
+| **Topology** | **Star Topology** (Gateway-centric WSN) | **Multi-hop Mesh** (Dynamic flood/routing) |
+| **Direct Sensors** | MPU6050, SW-420, HC-SR04, Crack, Strain (HX711) | LIS3DH tilt + temperature + GNSS discipline |
+| **Displacement Logic**| Directly measured via Ultrasonic (HC-SR04) + Strain | Derived mathematically via Knothe profile integration |
+| **Backend Store** | SQLite / SQLAlchemy (`app/`) | TimescaleDB + PostGIS |
+| **Dashboard** | React 19 + Vite + Recharts (`dashboard/`) | React + Leaflet 2D + Three.js 3D Terrain |
+
+---
+
+## 2. Physical Prototype Architecture Diagram
 
 ```
 +--------------------------+          +--------------------------+
@@ -12,6 +28,7 @@ This document describes the end-to-end architecture, communication topology, dat
 |  - MPU6050 (Tilt)        |          | - MPU6050 (Tilt)         |
 |  - SW-420 (Vibration)    |          | - HC-SR04 (Displacement) |
 |                          |          | - SW-420 (Vibration)     |
+|                          |          | - Crack & Strain Gauges  |
 +------------+-------------+          +------------+-------------+
              |                                     |
              | ESP-NOW (Channel 1, 2.4 GHz)       | ESP-NOW (Channel 1, 2.4 GHz)
@@ -54,7 +71,7 @@ This document describes the end-to-end architecture, communication topology, dat
 
 ---
 
-## 2. Network Topology & Communication Protocols
+## 3. Network Topology & Communication Protocols
 
 ### Wireless Sensor Network (WSN) Topology
 * **Topology**: Star Topology (Gateway-centric).
@@ -68,15 +85,16 @@ This document describes the end-to-end architecture, communication topology, dat
 
 ---
 
-## 3. Layer Breakdown
+## 4. Layer Breakdown
 
 ### Layer 1: Physical Sensing Layer
-* **Baseline Sensing (Node 1)**: Captures steady-state reference measurements from unaffected ground strata.
-* **Deformation Sensing (Node 2)**: Captures active surface subsidence metrics including:
+* **Baseline Sensing (Node 1)**: Captures steady-state reference measurements from unaffected ground strata outside the deformation zone.
+* **Deformation Sensing (Node 2)**: Captures active surface subsidence metrics:
   * **Dual-axis Tilt** ($\theta_x, \theta_y$) calculated from gravitational acceleration vectors.
-  * **Surface Displacement** measured via ultrasonic time-of-flight.
+  * **Surface Displacement** measured directly via ultrasonic time-of-flight.
   * **Vibrational Shocks** detected via spring-mass switch contacts.
   * **Structural Cracks** detected via physical fissure state inputs.
+  * **Mechanical Strain** captured via strain gauge through an HX711 24-bit ADC.
 
 ### Layer 2: Edge Gateway & Display Layer
 * **ESP32-S3 Gateway**:

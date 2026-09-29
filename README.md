@@ -4,20 +4,35 @@ An end-to-end IoT and edge-computing prototype designed for real-time detection,
 
 ---
 
-## 1. Problem Overview
+## 1. Prototype Architecture Context & Distinction
 
-Underground and open-cast mining operations induce continuous subsurface stress redistribution. As voids are created, overlying rock strata shift, resulting in surface subsidence, fissure propagation, structural tilting, and ground instability. Undetected subsidence poses significant hazards to mine personnel, surrounding civil infrastructure, and operational safety.
-
-Traditional subsidence monitoring methods often rely on periodic manual leveling surveys or expensive satellite interferometry (InSAR) with slow revisit intervals. This project provides a continuous, low-latency, real-time wireless sensor network (WSN) that captures high-frequency physical deformation metrics and flags risk levels before catastrophic failure occurs.
+> [!IMPORTANT]
+> **Implementation Scope & Architectural Distinction**:
+> This software and firmware package implements the **physical working hardware prototype** of the mine subsidence early warning system. It is purposefully designed for direct bench testing and field prototype validation, distinct from theoretical large-scale multi-node mesh simulations.
+>
+> * **Current Physical Prototype (This Implementation)**:
+>   * **Topology**: Star Topology (Gateway-centric Wireless Sensor Network).
+>   * **Sensor Nodes**:
+>     * **Node 1 (ESP32)**: Baseline reference sensor node (MPU6050 tilt + SW-420 vibration).
+>     * **Node 2 (ESP32)**: Active deformation sensor node (MPU6050 tilt + SW-420 vibration + HC-SR04 ultrasonic distance + crack sensor + strain gauge interface via HX711 + SG90 physical indicator).
+>   * **Gateway**: ESP32-S3 Central Gateway / Control Hub (FreeRTOS queue, 128x64 I2C OLED display, HW-504 joystick, buzzer, and button).
+>   * **Communication**: Direct **ESP-NOW (2.4 GHz)** peer-to-peer frames from sensor nodes to the ESP32-S3 Gateway; **Wi-Fi (HTTP REST)** from the ESP32-S3 Gateway to the central FastAPI backend.
+>   * *(No LoRa transceivers and no multi-hop mesh routing are used in this current physical prototype).*
+>
+> * **Large-Scale Field Design (MineGuard Target Architecture)**:
+>   * 21-node array on a linear survey transect using LoRa (865 MHz) multi-hop mesh routing, Knothe influence-function physics modeling, and TimescaleDB time-series storage.
 
 ---
 
-## 2. System Overview & Key Features
+## 2. Problem Overview
 
-The prototype employs a modular, three-tier architecture:
-1. **Field Sensor Nodes (ESP32)**: Distributed sensing units deployed across baseline and active deformation zones.
-2. **Central Gateway / Control Hub (ESP32-S3)**: An edge receiver that collects sensor packets over ESP-NOW, renders live status on an I2C OLED display, and bridges telemetry to the cloud/local server over Wi-Fi.
-3. **Analytics Backend & Web Dashboard (FastAPI + React)**: A centralized server that processes telemetry streams, evaluates dynamic risk thresholds against established baselines, and visualizes real-time status and historical trends.
+Underground and open-cast mining operations induce continuous subsurface stress redistribution. As voids are created, overlying rock strata shift, resulting in surface subsidence, fissure propagation, structural tilting, and ground instability. Undetected subsidence poses significant hazards to mine personnel, surrounding civil infrastructure, and operational safety.
+
+Traditional subsidence monitoring methods often rely on periodic manual leveling surveys or satellite interferometry (InSAR) with slow revisit intervals. This project provides a continuous, low-latency, real-time wireless sensor network (WSN) that captures high-frequency physical deformation metrics and flags risk levels before catastrophic failure occurs.
+
+---
+
+## 3. Physical Prototype Hardware Architecture
 
 ```
 +-------------------------------------------------------------------+
@@ -73,10 +88,6 @@ The prototype employs a modular, three-tier architecture:
 +-------------------------------------------------------------------+
 ```
 
----
-
-## 3. Hardware Architecture
-
 ### Node 1 — Baseline / Reference Node (ESP32)
 * **Microcontroller**: ESP32 Dev Module (WROOM-32)
 * **Sensors**:
@@ -86,19 +97,21 @@ The prototype employs a modular, three-tier architecture:
 
 ### Node 2 — Active Deformation Node (ESP32)
 * **Microcontroller**: ESP32 Dev Module (WROOM-32)
-* **Sensors & Interfaces**:
+* **Sensors & Actuators**:
   * **MPU-6050**: Measures localized surface tilt and angle shifts (`SDA -> GPIO 21`, `SCL -> GPIO 22`).
   * **SW-420**: Detects sudden ground shocks and rock movement (`DO -> GPIO 27`).
   * **HC-SR04**: Ultrasonic sensor measuring vertical ground displacement / settlement distance (`TRIG -> GPIO 5`, `ECHO -> GPIO 18`).
   * **Crack Sensor**: Detects joint separation and fissure widening (`crack_state`).
   * **Strain Gauge Interface**: Connects through an HX711 24-bit differential ADC module to quantify mechanical stress.
-* **Purpose**: Deployed directly over vulnerable surface strata to continuously track displacement and structural shifts.
+  * **SG90 Servo**: Actuates a physical early-warning flag / indicator upon critical alarms.
+* **Purpose**: Deployed directly over vulnerable surface strata to continuously track displacement, crack widening, and structural shifts.
 
 ### Central Gateway Hub (ESP32-S3)
 * **Microcontroller**: ESP32-S3 DevKitC-1
 * **Components**:
   * **0.96" Monochrome I2C OLED (SSD1306)**: Displays live node statuses, link health, and alarm flags (`SDA -> GPIO 8`, `SCL -> GPIO 9`).
-  * **HW-504 Joystick & Inputs**: Hardware navigation controls.
+  * **HW-504 Joystick & Inputs**: Hardware navigation controls for screen and menu toggling.
+  * **Buzzer & Push Button**: Local audible alarm and manual baseline calibration.
 * **Communication**: Receives ESP-NOW packets from nodes, decodes telemetry frames, updates the local display, and dispatches JSON payloads to the FastAPI backend over Wi-Fi.
 
 > [!TIP]
@@ -230,7 +243,7 @@ For detailed descriptions of each test case and output criteria, see [`docs/TEST
 
 ## 8. Current Limitations & Future Improvements
 
-### Current Limitations
+### Current Prototype Limitations
 * **Radio Range**: ESP-NOW operating on 2.4 GHz requires near line-of-sight in rugged surface environments.
 * **Power Management**: Firmware currently runs continuous loop sampling; field deployment will require deep-sleep duty cycles.
 * **Single Gateway Topology**: Star topology limits coverage radius to direct range of the ESP32-S3 gateway.
